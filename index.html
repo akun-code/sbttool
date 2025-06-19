@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <link rel="icon" href="favicon.svg" type="image/x-icon">
 <meta charset="UTF-8">
 <title>Sales Bonus Tool</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.0.1/dist/chart.umd.min.js"></script>
@@ -150,7 +151,7 @@ langBtn.onclick = () => {
 function updateLanguage(lang) {
   const L = {
     en: { calc:"Calculate", reset:"Reset", download:"Download PDF", custom:"Custom Tracker", checkGrp:"Check Your Group", grpPrompt:"Enter # of sales this week:", grpTitle:"Your Group"},
-    fr: { calc:"Calculer", reset:"Réinitialiser", download:"Télécharger PDF", custom:"Traqueur Perso", checkGrp:"Vérifier Votre Groupe", grpPrompt:"Entrez n° de ventes cette semaine:", grpTitle:"Votre Groupe"}
+    fr: { calc:"Calculer", reset:"RÃ©initialiser", download:"TÃ©lÃ©charger PDF", custom:"Traqueur Perso", checkGrp:"VÃ©rifier Votre Groupe", grpPrompt:"Entrez nÂ° de ventes cette semaine:", grpTitle:"Votre Groupe"}
   };
   document.getElementById('calculateBtn').textContent = L[lang].calc;
   document.getElementById('resetBtn').textContent = L[lang].reset;
@@ -202,7 +203,7 @@ document.getElementById('downloadBtn').onclick = () => {
   doc.setFontSize(12); let y=35;
   Object.keys(rates).forEach(k=>{
     const cnt=+(document.getElementById(k).value)||0;
-    doc.text(`${labels[k]}: ${cnt} × ${rates[k]} = ${cnt*rates[k]} MAD`,14,y);
+    doc.text(`${labels[k]}: ${cnt} Ã— ${rates[k]} = ${cnt*rates[k]} MAD`,14,y);
     y+=8;
   });
   doc.setFontSize(14); doc.text(`Total Bonus: ${document.getElementById('total').textContent} MAD`,14,y+10);
@@ -236,7 +237,7 @@ function renderPreview(){
   prev.innerHTML='';
   entries.forEach((e,i)=>{
     const li=document.createElement('li');
-    li.innerHTML = `${e.saleType||'—'} | ${e.cName||'—'} | ${e.cOrder||'—'} <button onclick="entries.splice(${i},1);renderPreview();if(entries.length===0)document.getElementById('downloadCustom').style.display='none';">Remove</button>`;
+    li.innerHTML = `${e.saleType||'Â—'} | ${e.cName||'Â—'} | ${e.cOrder||'Â—'} <button onclick="entries.splice(${i},1);renderPreview();if(entries.length===0)document.getElementById('downloadCustom').style.display='none';">Remove</button>`;
     prev.appendChild(li);
   });
 }
@@ -246,7 +247,7 @@ document.getElementById('downloadCustom').onclick = () => {
   doc.setFontSize(12); let y=35;
   entries.forEach((e,idx)=>{
     doc.text(`Entry ${idx+1}:`,14,y); y+=6;
-    for(let k in e) if(e[k]){ doc.text(`• ${k}: ${e[k]}`,14,y); y+=6;}
+    for(let k in e) if(e[k]){ doc.text(`Â• ${k}: ${e[k]}`,14,y); y+=6;}
     y+=4;
   });
   doc.save("custom-sales-entries.pdf");
