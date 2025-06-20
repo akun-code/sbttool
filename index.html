@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sales Bonus Tool</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #fff;
+    --fg: #000;
+    --accent1: #4CAF50;
+    --accent2: #2196F3;
+    --btn-text: #fff;
+  }
+  [data-theme="dark"] {
+    --bg: #333;
+    --fg: #eee;
+    --accent1: #1b5e20;
+    --accent2: #0d47a1;
+  }
+  body { margin:0; font-family:Arial,sans-serif; background:var(--accent1); color:var(--fg); display:flex;justify-content:center;padding:2em;}
+  .container { background:var(--bg); width:650px; border-radius:12px; padding:2em; box-shadow:0 8px 24px rgba(0,0,0,0.2); position:relative;}
+  .toggle-group { position:absolute;top:1em;right:1em;}
+  .toggle-group button { margin-left:8px;padding:4px 8px;border:none;background:transparent;color:var(--fg);font-size:18px;cursor:pointer;}
+  .header { margin-bottom:1em; background:linear-gradient(135deg,var(--accent1),var(--accent2)); padding:0.8em;border-radius:8px;text-align:center;font-size:1.3em;font-weight:bold;color:var(--btn-text);}
+  .sales-list, .preview-list { list-style:none;margin:0.5em 0;padding:0;}
+  .sales-list li, .preview-list li { display:flex;justify-content:space-between;align-items:center;margin:0.4em 0;}
+  input, select { padding:6px;border:1px solid #ccc;border-radius:4px;}
+  .buttons { display:flex;justify-content:space-between;margin:1em 0;gap:8px;}
+  button, .icon-btn { flex:1;padding:8px;border:none;border-radius:6px;color:var(--btn-text);font-size:1em;cursor:pointer;transition:opacity .2s;}
+  button:hover, .icon-btn:hover { opacity:0.9;}
+  #calculateBtn { background:var(--accent1); }
+  #resetBtn { background:#f44336; }
+  #downloadBtn { background:var(--accent2); }
+  #toggleCustom, #checkGroup { background:#ff9800; }
+  #exportExcel { background:#6a1b9a; }
+  #downloadCustom { background:#6a1b9a; }
+  #noteBtn { background:#FFEB3B;color:#333;width:40px;height:40px;position:absolute;top:1em;left:1em;font-size:20px;cursor:pointer;border:none;border-radius:4px;}
+  .note-area, .custom-form { display:none;margin-top:1em;}
+  .note-area textarea { width:100%;height:160px;font-family:monospace;padding:8px;}
+  .custom-form-row { display:flex;flex-wrap:wrap;gap:8px;}
+  .preview-list li { background:#f0f0f0;padding:8px;border-radius:4px;}
+  .preview-list button { background:#ff5722;color:#fff;padding:4px 8px;border:none;cursor:pointer;border-radius:4px;} /* brighter remove button */
+</style>
+</head>
+
+<body>
+<div class="container" data-theme="light">
+  <div class="toggle-group">
+    <button id="langToggle">FR</button>
+    <button id="themeToggle">🌙</button>
+  </div>
+  <button id="noteBtn">📝</button>
+  <div class="header">Sales Bonus Tool</div>
+
+  <ul id="salesCountList" class="sales-list"></ul>
+  <div class="total-section">Total Bonus: <span id="total">0</span> MAD</div>
+  <div class="buttons">
+    <button id="calculateBtn">Calculate</button>
+    <button id="resetBtn">Reset</button>
+    <button id="downloadBtn">Download PDF</button>
+  </div>
+  <div class="buttons">
+    <button id="toggleCustom">Custom Tracker</button>
+    <button id="exportExcel">Export Excel</button>
+  </div>
+
+  <div class="note-area">
+    <textarea id="noteText">Dealer Code/Sales Rep ID: 1100054081/ [Your REP ID]
+Compain Name : [Found in Alvaria]
+Site: TIMA Casablanca
+Spoke with: [The Name of The Client]
+Order Number (FFH / MOB) : [The Order Number]
+Products, plan & packages discussed/sold: 
+Regular pricing: 
+Promotional pricing, credit code: The PROMOS
+Name of device and color (MOB): NA
+Device storage capacity (MOB): NA
+Term length: [Mtm or 2 years or 3/5 year depends on the product]
+Informed of credit check: yes
+Connection Fee discussed for each device (MOB) : YES
+Additional Comments:CX INTRESTED.</textarea>
+    <button id="copyNote">Copy to Clipboard</button>
+  </div>
+
+  <div class="custom-form" id="customForm">
+    <div class="custom-form-row">
+      <select id="saleType"><option disabled selected>Type of Sale</option></select>
+      <input id="cName" placeholder="Name">
+      <input id="cBAN" placeholder="BAN">
+      <input id="cCID" placeholder="CID">
+      <input id="cNumber" placeholder="Number">
+      <input id="cOffer" placeholder="Offer Details">
+      <input id="cOrder" placeholder="Order Number">
+      <input id="cDate" type="date">
+    </div>
+    <div class="buttons">
+      <button id="addCustom">Add Entry</button>
+      <button id="downloadCustom" style="display:none">Download Custom PDF</button>
+    </div>
+    <ul id="previewList" class="preview-list"></ul>
+  </div>
+
+  <div style="margin-top:2em;">
+    <h3 style="display:flex;align-items:center;gap:8px;"><span>🎯</span><span id="grpTitle">Your Group</span></h3>
+    <p id="grpPrompt">Enter # of sales this week:</p>
+    <input type="number" id="groupSales" min="0">
+    <button id="checkGroup">Check Your Group</button>
+    <p id="groupResult" style="text-align:center;font-weight:bold;"></p>
+  </div>
+</div>
+
+<script>
+// Data
+const rates = {
+  renewal:30, mobTelus:130, mobKoodo:70, shsA:300,
+  homeView:120, koodoInternet:170, ilecFiber:200,
+  ilecOptikTV:100, vulcanFiber:300, vulcanOptikTV:150,
+  streamPlus:30, wirelessHP:30
+};
+const labels = {
+  renewal:"Renewal", mobTelus:"MOB Telus", mobKoodo:"MOB Koodo",
+  shsA:"SHS", homeView:"HomeView", koodoInternet:"Koodo Internet",
+  ilecFiber:"ILEC Fiber", ilecOptikTV:"ILEC Optik TV",
+  vulcanFiber:"Vulcan Fiber", vulcanOptikTV:"Vulcan Optik TV",
+  streamPlus:"Stream+", wirelessHP:"Wireless HP"
+};
+let entries = [];
+let history = JSON.parse(localStorage.getItem('history')||'[]');
+
+// Build inputs
+const salesList = document.getElementById('salesCountList');
+for (let k in rates) {
+  const li = document.createElement('li');
+  li.innerHTML = `<label>${labels[k]}</label><input type="number" id="${k}" min="0" value="0">`;
+  salesList.appendChild(li);
+}
+
+// Populate select
+const saleType = document.getElementById('saleType');
+Object.values(labels).forEach(l => {
+  saleType.innerHTML += `<option value="${l}">${l}</option>`;
+});
+
+// Functions
+function updateHistory() {
+  const today = new Date().toLocaleDateString();
+  const total = parseInt(document.getElementById('total').textContent) || 0;
+  history = history.filter(h=>h.date !== today);
+  history.push({date: today, total});
+  localStorage.setItem('history', JSON.stringify(history));
+}
+
+// Sales calculate
+document.getElementById('calculateBtn').onclick = () => {
+  let total=0;
+  for (let k in rates) {
+    total += (parseInt(document.getElementById(k).value)||0) * rates[k];
+  }
+  document.getElementById('total').textContent = total.toLocaleString();
+  updateHistory();
+};
+
+// Reset
+document.getElementById('resetBtn').onclick = () => {
+  for (let k in rates) document.getElementById(k).value = 0;
+  document.getElementById('total').textContent = '0';
+};
+
+// PDF Download
+document.getElementById('downloadBtn').onclick = () => {
+  const {jspdf: msdf} = window, { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ lineHeightFactor:1.2 });
+  doc.setFillColor('#4CAF50');
+  doc.rect(0,0,210,20,'F');
+  doc.setTextColor('#FFF'); doc.setFontSize(16);
+  doc.text("Sales Bonus Tracker",10,14);
+  doc.setTextColor('#000'); doc.setFontSize(12);
+  let y=30;
+  for (let k in rates) {
+    const cnt = parseInt(document.getElementById(k).value)||0;
+    if (cnt) {
+      doc.text(`${labels[k]} (${cnt} × ${rates[k]}): ${cnt * rates[k]} MAD`,10,y);
+      y+=8;
+    }
+  }
+  doc.setFontSize(14);
+  doc.text(`Total Bonus: ${document.getElementById('total').textContent} MAD`,10,y+10);
+  doc.save('sales-bonus.pdf');
+};
+
+// Export Excel
+document.getElementById('exportExcel').onclick = () => {
+  const wb = XLSX.utils.book_new();
+  const bonusRows = [['Type','Count','Rate','Subtotal']];
+  const customRows = [['Type','Name','BAN','CID','Number','Offer','Order','Date']];
+  for (let k in rates) {
+    const cnt = parseInt(document.getElementById(k).value)||0;
+    if (cnt) bonusRows.push([labels[k],cnt,rates[k],cnt * rates[k]]);
+  }
+  entries.forEach(e => customRows.push([e.saleType,e.cName,e.cBAN,e.cCID,e.cNumber,e.cOffer,e.cOrder,e.cDate]));
+  const ws1 = XLSX.utils.aoa_to_sheet(bonusRows);
+  const ws2 = XLSX.utils.aoa_to_sheet(customRows);
+  XLSX.utils.book_append_sheet(wb, ws1, 'Sales Bonus');
+  XLSX.utils.book_append_sheet(wb, ws2, 'Custom Tracker');
+  XLSX.writeFile(wb,'tracker.xlsx');
+};
+
+// Memo note toggle
+document.getElementById('noteBtn').onclick = () => {
+  const area = document.querySelector('.note-area');
+  area.style.display = area.style.display==='block'?'none':'block';
+};
+document.getElementById('copyNote').onclick = () => {
+  const txt = document.getElementById('noteText');
+  txt.select(); document.execCommand('copy');
+  alert('Copied!');
+};
+
+// Custom tracker
+document.getElementById('toggleCustom').onclick = () => {
+  document.getElementById('customForm').style.display='block';
+};
+document.getElementById('addCustom').onclick = () => {
+  const e2 = {};
+  ['saleType','cName','cBAN','cCID','cNumber','cOffer','cOrder','cDate'].forEach(id => {
+    e2[id] = document.getElementById(id).value;
+  });
+  entries.push(e2);
+  renderEntries();
+  document.getElementById('downloadCustom').style.display = 'block';
+};
+function renderEntries() {
+  const ul = document.getElementById('previewList');
+  ul.innerHTML='';
+  entries.forEach((e,i) => {
+    const li=document.createElement('li');
+    li.innerHTML = `${e.saleType}|${e.cName}|${e.cOrder} <button onclick="entries.splice(${i},1);renderEntries();document.getElementById('downloadCustom').style.display = entries.length ? 'block':'none';">Remove</button>`;
+    ul.appendChild(li);
+  });
+}
+document.getElementById('downloadCustom').onclick = () => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({lineHeightFactor:1.2});
+  doc.setFillColor('#2196F3'); doc.rect(0,0,210,20,'F');
+  doc.setTextColor('#FFF'); doc.setFontSize(16);
+  doc.text("Custom Tracker",10,14);
+  doc.setTextColor('#000'); doc.setFontSize(12);
+  let y=30;
+  entries.forEach((e,i)=>{
+    doc.text(`Entry ${i+1}:`,10,y);
+    y+=6;
+    Object.entries(e).forEach(([k,v]) => {
+      if (v) {
+        doc.text(`• ${k}: ${v}`, 12, y);
+        y+=6;
+      }
+    });
+    y+=4;
+  });
+  doc.save('custom-tracker.pdf');
+};
+
+// Group logic
+document.getElementById('checkGroup').onclick = () => {
+  const s = parseInt(document.getElementById('groupSales').value)||0;
+  let group = 'H & D';
+  if (s>=4 && s<=8) group='C';
+  else if (s>=9 && s<=12) group='B';
+  else if (s>=13 && s<=19) group='A';
+  else if (s>=20) group='A+';
+  document.getElementById('groupResult').textContent = `👉 You will be in Group ${group} next week!`;
+};
+
+// Theme toggle
+const container = document.querySelector('.container');
+document.getElementById('themeToggle').onclick = () => {
+  const newTheme = container.getAttribute('data-theme')==='light'?'dark':'light';
+  container.setAttribute('data-theme', newTheme);
+  document.getElementById('themeToggle').textContent = newTheme==='light'?'🌙':'🌞';
+};
+
+// Language toggle
+document.getElementById('langToggle').onclick = () => {
+  const current = document.getElementById('langToggle').textContent;
+  const lang = current==='FR'?'fr':'en';
+  document.getElementById('langToggle').textContent = lang==='fr'?'EN':'FR';
+  const dict = {
+    en:{calc:'Calculate',reset:'Reset',download:'Download PDF',custom:'Custom Tracker',excel:'Export Excel',check:'Check Your Group',prompt:'Enter # of sales this week:',title:'Your Group'},
+    fr:{calc:'Calculer',reset:'Réinitialiser',download:'Télécharger PDF',custom:'Traqueur Perso',excel:'Exporter Excel',check:'Vérifier Votre Groupe',prompt:'Entrez n° de ventes cette semaine:',title:'Votre Groupe'}
+  };
+  const d = dict[lang];
+  document.getElementById('calculateBtn').textContent = d.calc;
+  document.getElementById('resetBtn').textContent = d.reset;
+  document.getElementById('downloadBtn').textContent = d.download;
+  document.getElementById('toggleCustom').textContent = d.custom;
+  document.getElementById('exportExcel').textContent = d.excel;
+  document.getElementById('checkGroup').textContent = d.check;
+  document.getElementById('grpPrompt').textContent = d.prompt;
+  document.getElementById('grpTitle').textContent = d.title;
+};
+</script>
+</body>
+</html>
