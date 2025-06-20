@@ -20,6 +20,13 @@
     --accent1: #1b5e20;
     --accent2: #0d47a1;
   }
+  [data-theme="purple"] {
+  --bg: #fafafb;
+  --fg: #333;
+  --accent1: #ffffff;
+  --accent2: #e1bee7;
+  --btn-text: #333;
+  }
   body { margin:0; font-family:Arial,sans-serif; background:var(--accent1); color:var(--fg); display:flex;justify-content:center;padding:2em;}
   .container { background:var(--bg); width:650px; border-radius:12px; padding:2em; box-shadow:0 8px 24px rgba(0,0,0,0.2); position:relative;}
   .toggle-group { position:absolute;top:1em;right:1em;}
@@ -37,6 +44,7 @@
   #toggleCustom, #checkGroup { background:#ff9800; }
   #exportExcel { background:#6a1b9a; }
   #downloadCustom { background:#6a1b9a; }
+  #contactBtn { position: absolute;top: 1em;left: 3.5em;font-size: 20px;color: var(--fg);text-decoration: none; }
   #noteBtn { background:#FFEB3B;color:#333;width:40px;height:40px;position:absolute;top:1em;left:1em;font-size:20px;cursor:pointer;border:none;border-radius:4px;}
   .note-area, .custom-form { display:none;margin-top:1em;}
   .note-area textarea { width:100%;height:160px;font-family:monospace;padding:8px;}
@@ -47,12 +55,13 @@
 </head>
 
 <body>
-<div class="container" data-theme="light">
-  <div class="toggle-group">
-    <button id="langToggle">FR</button>
-    <button id="themeToggle">🌙</button>
-  </div>
-  <button id="noteBtn">📝</button>
+<div class="toggle-group">
+  <button id="themeToggle">🌙</button>
+  <button id="purpleToggle">💜</button>
+  <button id="langToggle">FR</button>
+</div>
+<button id="noteBtn">📝</button>
+<a href="https://docs.google.com/forms/d/e/1FAIpQLSdPdYaqj66wsVrJIVoN3jEHeIAmDS6mhaFGwcCwoapE1uwvTw/viewform?usp=preview" id="contactBtn" target="_blank" title="Contact"><span>📬</span></a>
   <div class="header">Sales Bonus Tool</div>
 
   <ul id="salesCountList" class="sales-list"></ul>
@@ -300,6 +309,20 @@ document.getElementById('langToggle').onclick = () => {
   document.getElementById('checkGroup').textContent = d.check;
   document.getElementById('grpPrompt').textContent = d.prompt;
   document.getElementById('grpTitle').textContent = d.title;
+};
+  
+  // Purple-white minimal theme toggle
+document.getElementById('purpleToggle').onclick = () => {
+  const ctr = document.querySelector('.container');
+  const mode = ctr.getAttribute('data-theme');
+  if (mode !== 'purple') {
+    ctr.setAttribute('data-theme','purple');
+    document.getElementById('purpleToggle').textContent = '⚪';
+    document.getElementById('themeToggle').textContent = '🌞';
+  } else {
+    ctr.setAttribute('data-theme','light');
+    document.getElementById('purpleToggle').textContent = '💜';
+  }
 };
 </script>
 </body>
