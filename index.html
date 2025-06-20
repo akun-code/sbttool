@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sales Bonus Tool</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #fff; --fg: #000;
+    --accent1: #4caf50; --accent2: #2196f3;
+    --btn-bg: var(--accent1); --btn-text: #fff;
+  }
+  [data-theme="dark"] {
+    --bg: #333; --fg: #eee;
+    --accent1: #1b5e20; --accent2: #0d47a1;
+    --btn-bg: var(--accent2);
+  }
+  [data-theme="purple"] {
+    --bg: #f3ebf8; --fg: #4b0082;
+    --accent1: #fff; --accent2: #e1bee7;
+    --btn-bg: #fff; --btn-text: #4b0082;
+  }
+  body { margin:0; font-family:Arial,sans-serif; background:var(--bg); color:var(--fg); display:flex; justify-content:center; padding:2em; }
+  .container { background:var(--bg); width:650px; padding:2em; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.1); position:relative; }
+  .toggle-group { position:absolute; top:1em; right:1em; }
+  .toggle-group button,
+  #noteBtn, #contactBtn { background:transparent; border:none; color:var(--fg); cursor:pointer; font-size:20px; padding:4px; }
+  #noteBtn { position:absolute; top:1em; left:1em; }
+  #contactBtn { position:absolute; top:1em; left:3.5em; }
+  .header { background:linear-gradient(135deg,var(--accent1),var(--accent2)); padding:0.8em; border-radius:8px; text-align:center; font-size:1.3em; font-weight:bold; color:var(--btn-text); margin-bottom:1em; }
+  .sales-list, .preview-list { list-style:none; margin:0.5em 0; padding:0; }
+  .sales-list li, .preview-list li { display:flex; justify-content:space-between; align-items:center; margin:0.4em 0; }
+  input, select { padding:6px; border:1px solid #ccc; border-radius:4px; background:var(--bg); color:var(--fg); }
+  .buttons { display:flex; gap:8px; margin:1em 0; }
+  .buttons button { flex:1; padding:8px; border:1px solid var(--btn-bg); border-radius:6px; background:var(--btn-bg); color:var(--btn-text); cursor:pointer; transition:opacity .2s; }
+  .buttons button:hover { opacity:0.9; }
+  #toggleCustom, #checkGroup { border-color:#ff9800; background:#fff; color:#ff9800; }
+  #toggleCustom:hover, #checkGroup:hover { background:#ff9800; color:#fff; }
+  .note-area, .custom-form { display:none; margin-top:1em; }
+  .note-area textarea { width:100%; height:160px; font-family:monospace; padding:8px; border:1px solid #ccc; border-radius:4px; }
+  .preview-list li { background:var(--accent2); padding:8px; border-radius:4px; color:var(--fg); }
+  .preview-list button { background:var(--btn-bg); color:var(--btn-text); padding:4px 8px; border:none; border-radius:4px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="container" data-theme="light">
+  <div class="toggle-group">
+    <button id="themeToggle">🌙</button>
+    <button id="purpleToggle">💎</button>
+    <button id="langToggle">FR</button>
+  </div>
+  <button id="noteBtn">📝</button>
+  <button id="contactBtn" title="Contact">📬</button>
+  <div class="header">Sales Bonus Tool</div>
+  <ul id="salesCountList" class="sales-list"></ul>
+  <div>Total Bonus: <span id="total">0</span> MAD</div>
+  <div class="buttons">
+    <button id="calculateBtn">Calculate</button>
+    <button id="resetBtn">Reset</button>
+    <button id="downloadBtn">Download PDF</button>
+  </div>
+  <div class="buttons">
+    <button id="toggleCustom">Custom Tracker</button>
+    <button id="exportExcel">Export Excel</button>
+  </div>
+  <div class="note-area">
+    <textarea id="noteText">Dealer Code/Sales Rep ID:1100054081/ [Your REP ID]…</textarea>
+    <button id="copyNote">Copy to Clipboard</button>
+  </div>
+  <div class="custom-form" id="customForm">
+    <div class="custom-form-row" style="display:flex;flex-wrap:wrap;gap:8px;">
+      <select id="saleType"><option disabled selected>Type of Sale</option></select>
+      <input id="cName" placeholder="Name">
+      <input id="cBAN" placeholder="BAN">
+      <input id="cCID" placeholder="CID">
+      <input id="cNumber" placeholder="Number">
+      <input id="cOffer" placeholder="Offer Details">
+      <input id="cOrder" placeholder="Order Number">
+      <input id="cDate" type="date">
+    </div>
+    <div class="buttons">
+      <button id="addCustom">Add Entry</button>
+      <button id="downloadCustom" style="display:none">Download Custom PDF</button>
+      <button id="customExcel" style="display:none">Export Custom Excel</button>
+    </div>
+    <ul id="previewList" class="preview-list"></ul>
+  </div>
+  <div>
+    <h3>🎯 <span id="grpTitle">Your Group</span></h3>
+    <p id="grpPrompt">Enter # of sales this week:</p>
+    <input type="number" id="groupSales" min="0">
+    <button id="checkGroup">Check Your Group</button>
+    <p id="groupResult" style="text-align:center;font-weight:bold;"></p>
+  </div>
+</div>
+
+<script>
+  const rates={renewal:30,mobTelus:130,mobKoodo:70,shsA:300,homeView:120,koodoInternet:170,ilecFiber:200,ilecOptikTV:100,vulcanFiber:300,vulcanOptikTV:150,streamPlus:30,wirelessHP:30};
+  const labels={renewal:"Renewal",mobTelus:"MOB Telus",mobKoodo:"MOB Koodo",shsA:"SHS",homeView:"HomeView",koodoInternet:"Koodo Internet",ilecFiber:"ILEC Fiber",ilecOptikTV:"ILEC Optik TV",vulcanFiber:"Vulcan Fiber",vulcanOptikTV:"Vulcan Optik TV",streamPlus:"Stream+",wirelessHP:"Wireless HP"};
+  let entries=[];
+
+  const salesList=document.getElementById('salesCountList');
+  Object.entries(rates).forEach(([k,v])=>{
+    const li=document.createElement('li');
+    li.innerHTML=`<label>${labels[k]}</label><input type="number" id="${k}" min="0" value="0">`;
+    salesList.appendChild(li);
+  });
+
+  const saleType=document.getElementById('saleType');
+  Object.values(labels).forEach(name=>{
+    const o=document.createElement('option');
+    o.value=name; o.textContent=name;
+    saleType.appendChild(o);
+  });
+
+  document.getElementById('calculateBtn').onclick=()=>{
+    let t=0; Object.entries(rates).forEach(([k,v])=>{
+      const c=parseInt(document.getElementById(k).value)||0;
+      t+=c*v;
+    }); document.getElementById('total').textContent=t.toLocaleString();
+  };
+
+  document.getElementById('resetBtn').onclick=()=>{
+    Object.keys(rates).forEach(k=>document.getElementById(k).value=0);
+    document.getElementById('total').textContent='0';
+  };
+
+  document.getElementById('downloadBtn').onclick=()=>{
+    const {jsPDF}=window.jspdf; const doc=new jsPDF({lineHeightFactor:1.2});
+    doc.setFillColor('#4caf50'); doc.rect(0,0,210,20,'F');
+    doc.setTextColor('#fff'); doc.setFontSize(16);
+    doc.text("Sales Bonus Tracker",10,14);
+    doc.setTextColor('#000'); doc.setFontSize(12);
+    let y=30;
+    Object.entries(rates).forEach(([k,v])=>{
+      const c=parseInt(document.getElementById(k).value)||0;
+      if(c){doc.text(`${labels[k]}: ${c} × ${v} = ${c*v} MAD`,10,y);y+=8;}
+    });
+    doc.setFontSize(14);
+    doc.text(`Total Bonus: ${document.getElementById('total').textContent} MAD`,10,y+10);
+    doc.save('sales-bonus.pdf');
+  };
+
+  document.getElementById('exportExcel').onclick=()=>{
+    const wb=XLSX.utils.book_new();
+    const bonus=[['Type','Count','Rate','Subtotal']];
+    Object.entries(rates).forEach(([k,v])=>{
+      const c=parseInt(document.getElementById(k).value)||0;
+      if(c) bonus.push([labels[k],c,v,c*v]);
+    });
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(bonus),'Sales Bonus');
+    if(entries.length){
+      const cust=[['Type','Name','BAN','CID','Number','Offer','Order','Date']];
+      entries.forEach(e=>cust.push([e.saleType,e.cName,e.cBAN,e.cCID,e.cNumber,e.cOffer,e.cOrder,e.cDate]));
+      XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(cust),'Custom Tracker');
+    }
+    XLSX.writeFile(wb,'tracker.xlsx');
+  };
+
+  document.getElementById('noteBtn').onclick=()=>{
+    const na=document.querySelector('.note-area');
+    na.style.display=(na.style.display==='block')?'none':'block';
+  };
+  document.getElementById('copyNote').onclick=()=>{
+    const ta=document.getElementById('noteText');
+    ta.select(); document.execCommand('copy');
+    alert('Copied to clipboard!');
+  };
+
+  document.getElementById('toggleCustom').onclick=()=>{
+    document.getElementById('customForm').style.display='block';
+  };
+  document.getElementById('addCustom').onclick=()=>{
+    const e={};
+    ['saleType','cName','cBAN','cCID','cNumber','cOffer','cOrder','cDate']
+      .forEach(id=>e[id]=document.getElementById(id).value);
+    entries.push(e); renderEntries();
+    document.getElementById('downloadCustom').style.display='inline-block';
+    document.getElementById('customExcel').style.display='inline-block';
+  };
+  function renderEntries(){
+    const ul=document.getElementById('previewList');
+    ul.innerHTML='';
+    entries.forEach((e,i)=>{
+      const li=document.createElement('li');
+      li.innerHTML=`${e.saleType} | ${e.cName} | ${e.cOrder} <button onclick="entries.splice(${i},1);renderEntries();">Remove</button>`;
+      ul.appendChild(li);
+    });
+  }
+  document.getElementById('downloadCustom').onclick=()=>{
+    const {jsPDF}=window.jspdf; const doc=new jsPDF({lineHeightFactor:1.2});
+    doc.setFillColor('#2196f3'); doc.rect(0,0,210,20,'F');
+    doc.setTextColor('#fff'); doc.setFontSize(16);
+    doc.text("Custom Tracker",10,14);
+    doc.setTextColor('#000'); doc.setFontSize(12);
+    let y=30;
+    entries.forEach((e,i)=>{
+      doc.text(`Entry ${i+1}:`,10,y); y+=6;
+      Object.entries(e).forEach(([k,v])=>{
+        if(v){doc.text(`• ${k}: ${v}`,12,y); y+=6;}
+      });
+      y+=4;
+    });
+    doc.save('custom-tracker.pdf');
+  };
+  document.getElementById('customExcel').onclick=()=>document.getElementById('exportExcel').click();
+
+  document.getElementById('checkGroup').onclick=()=>{
+    const s=parseInt(document.getElementById('groupSales').value)||0;
+    let g='H & D';
+    if(s>=4&&s<=8) g='C';
+    else if(s>=9&&s<=12) g='B';
+    else if(s>=13&&s<=19) g='A';
+    else if(s>=20) g='A+';
+    document.getElementById('groupResult').textContent=`👉 You will be in Group ${g} next week!`;
+  };
+
+  const ctr=document.querySelector('.container');
+  document.getElementById('themeToggle').onclick=()=>{
+    const m=ctr.getAttribute('data-theme')==='light'?'dark':'light';
+    ctr.setAttribute('data-theme',m);
+    document.getElementById('themeToggle').textContent=m==='light'?'🌙':'🌞';
+  };
+  document.getElementById('purpleToggle').onclick=()=>{
+    const m=ctr.getAttribute('data-theme')==='purple'?'light':'purple';
+    ctr.setAttribute('data-theme',m);
+    document.getElementById('purpleToggle').textContent=m==='purple'?'⚪':'💎';
+    if(m==='purple') document.getElementById('themeToggle').textContent='🌞';
+  };
+  document.getElementById('langToggle').onclick=()=>{
+    const lang=document.getElementById('langToggle').textContent==='FR'?'fr':'en';
+    document.getElementById('langToggle').textContent=lang==='fr'?'EN':'FR';
+    const dict={
+      en:{calc:'Calculate',reset:'Reset',download:'Download PDF',custom:'Custom Tracker',excel:'Export Excel',check:'Check Your Group',prompt:'Enter # of sales this week:',title:'Your Group'},
+      fr:{calc:'Calculer',reset:'Réinitialiser',download:'Télécharger PDF',custom:'Traqueur Perso',excel:'Exporter Excel',check:'Vérifier Votre Groupe',prompt:'Entrez n° de ventes cette semaine:',title:'Votre Groupe'}
+    };
+    const d=dict[lang];
+    document.getElementById('calculateBtn').textContent=d.calc;
+    document.getElementById('resetBtn').textContent=d.reset;
+    document.getElementById('downloadBtn').textContent=d.download;
+    document.getElementById('toggleCustom').textContent=d.custom;
+    document.getElementById('exportExcel').textContent=d.excel;
+    document.getElementById('customExcel').textContent=d.excel;
+    document.getElementById('checkGroup').textContent=d.check;
+    document.getElementById('grpPrompt').textContent=d.prompt;
+    document.getElementById('grpTitle').textContent=d.title;
+  };
+</script>
+</body>
+</html>
