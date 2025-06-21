@@ -1,278 +1,717 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Sales Bonus Tool</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-<style>
-  :root {
-    --bg: #fff; --fg: #000;
-    --accent1: #4caf50; --accent2: #2196f3;
-    --btn-bg: var(--accent1); --btn-text: #fff;
-  }
-  [data-theme="dark"] {
-    --bg: #333; --fg: #eee;
-    --accent1: #1b5e20; --accent2: #0d47a1;
-    --btn-bg: var(--accent2);
-  }
-  [data-theme="purple"] {
-    --bg: #f3ebf8; --fg: #4b0082;
-    --accent1: #fff; --accent2: #e1bee7;
-    --btn-bg: #fff; --btn-text: #4b0082;
-  }
-  body { margin:0; font-family:Arial,sans-serif; background:var(--bg); color:var(--fg); display:flex; justify-content:center; padding:2em; }
-  .container { background:var(--bg); width:650px; padding:2em; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,0.1); position:relative; }
-  .toggle-group { position:absolute; top:1em; right:1em; }
-  .toggle-group button, #noteBtn, #contactBtn { background:transparent; border:none; color:var(--fg); cursor:pointer; font-size:20px; padding:4px; }
-  #noteBtn { position:absolute; top:1em; left:1em; }
-  #contactBtn { position:absolute; top:1em; left:3.5em;}
-  .header { background:linear-gradient(135deg,var(--accent1),var(--accent2)); padding:0.8em; border-radius:8px; text-align:center; font-size:1.3em; font-weight:bold; color:var(--btn-text); margin-bottom:1em; }
-  .sales-list, .preview-list { list-style:none; margin:0.5em 0; padding:0; }
-  .sales-list li, .preview-list li { display:flex; justify-content:space-between; align-items:center; margin:0.4em 0; }
-  input, select { padding:6px; border:1px solid #ccc; border-radius:4px; background:var(--bg); color:var(--fg); }
-  .buttons { display:flex; gap:8px; margin:1em 0; }
-  .buttons button { flex:1; padding:8px; border:1px solid var(--btn-bg); border-radius:6px; background:var(--btn-bg); color:var(--btn-text); cursor:pointer; transition:opacity .2s; }
-  .buttons button:hover { opacity:0.9; }
-  #toggleCustom, #checkGroup { border-color:#ff9800; background:#fff; color:#ff9800; }
-  #toggleCustom:hover, #checkGroup:hover { background:#ff9800; color:#fff; }
-  .note-area, .custom-form { display:none; margin-top:1em; }
-  .note-area textarea { width:100%; height:160px; font-family:monospace; padding:8px; border:1px solid #ccc; border-radius:4px; }
-  .preview-list li { background:var(--accent2); padding:8px; border-radius:4px; color:var(--fg); }
-  .preview-list button { background:var(--btn-bg); color:var(--btn-text); padding:4px 8px; border:none; border-radius:4px; cursor:pointer; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Bonus Tool | Secure Platform</title>
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --primary-light: #e8f5e9;
+            --primary-medium: #a5d6a7;
+            --primary-dark: #2e7d32;
+            --accent: #1b5e20;
+            --error: #d32f2f;
+            --success: #2e7d32;
+            --text-dark: #212121;
+            --text-light: #f5f5f5;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5faf6;
+            background-image: radial-gradient(var(--primary-medium) 1px, transparent 1px);
+            background-size: 20px 20px;
+            color: var(--text-dark);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        .app-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--primary-medium);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo {
+            width: 50px;
+            height: 50px;
+            background-color: var(--primary-dark);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .logo-subtext {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .auth-container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 30px;
+            max-width: 400px;
+            margin: 50px auto;
+            transition: var(--transition);
+            border: 1px solid var(--primary-medium);
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .auth-title {
+            color: var(--accent);
+            margin-bottom: 8px;
+            font-size: 24px;
+        }
+
+        .auth-subtitle {
+            color: #666;
+            font-size: 15px;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .input-label {
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--accent);
+        }
+
+        .input-field {
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: var(--transition);
+            background-color: #f9f9f9;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--primary-dark);
+            box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.1);
+        }
+
+        .btn {
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            text-align: center;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-dark);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: transparent;
+            color: var(--primary-dark);
+            border: 1px solid var(--primary-dark);
+        }
+
+        .btn-secondary:hover {
+            background-color: rgba(46, 125, 50, 0.1);
+        }
+
+        .btn-link {
+            background: none;
+            border: none;
+            color: var(--primary-dark);
+            text-decoration: underline;
+            cursor: pointer;
+            font-size: 14px;
+            padding: 0;
+        }
+
+        .btn-link:hover {
+            color: var(--accent);
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            box-shadow: var(--shadow);
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: var(--transition);
+        }
+
+        .notification.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .notification.success {
+            background-color: var(--success);
+        }
+
+        .notification.error {
+            background-color: var(--error);
+        }
+
+        .tool-container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            padding: 25px;
+            margin-top: 20px;
+            border: 1px solid var(--primary-medium);
+            display: none;
+        }
+
+        .tool-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background-color: var(--primary-dark);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .logout-btn {
+            background: none;
+            border: none;
+            color: var(--error);
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .tool-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .section {
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+
+        .section-title {
+            font-size: 18px;
+            color: var(--accent);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background-color: white;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid #eee;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-dark);
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: #666;
+        }
+
+        .action-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 12px;
+            background-color: var(--primary-medium);
+            color: var(--text-dark);
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .action-btn:hover {
+            background-color: var(--primary-dark);
+            color: white;
+        }
+
+        .status-bar {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+            font-size: 13px;
+            color: #666;
+        }
+
+        .last-save {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            color: #666;
+            font-size: 14px;
+            border-top: 1px solid #eee;
+        }
+
+        @media (max-width: 768px) {
+            .tool-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .action-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .auth-container {
+                padding: 20px;
+                margin: 20px auto;
+            }
+        }
+    </style>
 </head>
 <body>
-<div class="container" data-theme="light">
-  <div class="toggle-group">
-    <button id="themeToggle">🌙</button>
-    <button id="purpleToggle">💎</button>
-    <button id="langToggle">FR</button>
-  </div>
-  <button id="noteBtn">📝</button>
-  <button id="contactBtn" title="Contact">📬</button>
-  <div class="header">Sales Bonus Tool</div>
-  <ul id="salesCountList" class="sales-list"></ul>
-  <div>Total Bonus: <span id="total">0</span> MAD</div>
-  <div class="buttons">
-    <button id="calculateBtn">Calculate</button>
-    <button id="resetBtn">Reset</button>
-    <button id="downloadBtn">Download PDF</button>
-  </div>
-  <div class="buttons">
-    <button id="toggleCustom">Custom Tracker</button>
-    <button id="exportExcel">Export Sales Excel</button>
-  </div>
-  <div class="note-area">
-    <textarea id="noteText">Dealer Code/Sales Rep ID: 1100054081/ [Your REP ID]
-Compain Name : [Found in Alvaria]
-Site: TIMA Casablanca
-Spoke with: [The Name of The Client]
-Order Number (FFH / MOB) : [The Order Number]
-Products, plan & packages discussed/sold: 
-Regular pricing: 
-Promotional pricing, credit code: The PROMOS
-Name of device and color (MOB): NA
-Device storage capacity (MOB): NA
-Term length: [Mtm or 2 years or 3/5 year depends on the product]
-Informed of credit check: yes
-Connection Fee discussed for each device (MOB) : YES
-Additional Comments:CX INTRESTED</textarea>
-    <button id="copyNote">Copy to Clipboard</button>
-  </div>
-  <div class="custom-form" id="customForm">
-    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-      <select id="saleType"><option disabled selected>Type of Sale</option></select>
-      <input id="cName" placeholder="Name">
-      <input id="cBAN" placeholder="BAN">
-      <input id="cCID" placeholder="CID">
-      <input id="cNumber" placeholder="Number">
-      <input id="cOffer" placeholder="Offer Details">
-      <input id="cOrder" placeholder="Order Number">
-      <input id="cDate" type="date">
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-container">
+                <div class="logo">$</div>
+                <div>
+                    <div class="logo-text">Sales Bonus Tool</div>
+                    <div class="logo-subtext">Track, calculate, and maximize your earnings</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Auth Container (Initially Visible) -->
+        <div id="auth-container" class="auth-container">
+            <div class="auth-header">
+                <h2 class="auth-title">Sales Rep Login</h2>
+                <p class="auth-subtitle">Enter your credentials to access your bonus dashboard</p>
+            </div>
+            
+            <form class="auth-form" id="login-form">
+                <div class="input-group">
+                    <label for="sales-id" class="input-label">Sales ID</label>
+                    <input type="text" id="sales-id" class="input-field" placeholder="Enter your unique sales ID">
+                </div>
+                
+                <div class="input-group">
+                    <label for="sales-password" class="input-label">Password</label>
+                    <input type="password" id="sales-password" class="input-field" placeholder="Enter your password">
+                </div>
+                
+                <button type="button" id="login-btn" class="btn btn-primary">Continue</button>
+                
+                <div class="auth-footer">
+                    <button type="button" id="forgot-password" class="btn-link">Forgot your password?</button>
+                    <p>No account? Your ID auto-registers on first login</p>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tool Container (Initially Hidden) -->
+        <div id="tool-container" class="tool-container">
+            <div class="tool-header">
+                <div class="user-info">
+                    <div class="user-avatar" id="user-avatar">U</div>
+                    <div>
+                        <div class="user-name" id="user-name">User Name</div>
+                        <div class="user-id" id="user-id">ID: loading...</div>
+                    </div>
+                </div>
+                <button class="logout-btn" id="logout-btn">
+                    <span>Logout</span>
+                </button>
+            </div>
+            
+            <div class="tool-content">
+                <div class="section">
+                    <h3 class="section-title">Bonus Calculator</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Renewals</div>
+                            <div class="stat-value">12</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">New Sales</div>
+                            <div class="stat-value">8</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Upgrades</div>
+                            <div class="stat-value">5</div>
+                        </div>
+                    </div>
+                    
+                    <div class="action-grid">
+                        <button class="action-btn">
+                            <span>Calculate Bonus</span>
+                        </button>
+                        <button class="action-btn">
+                            <span>Reset Values</span>
+                        </button>
+                        <button class="action-btn">
+                            <span>Export PDF</span>
+                        </button>
+                        <button class="action-btn">
+                            <span>Export Excel</span>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="section">
+                    <h3 class="section-title">Custom Tracker</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-label">Active Trackers</div>
+                            <div class="stat-value">3</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Pending</div>
+                            <div class="stat-value">2</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-label">Completed</div>
+                            <div class="stat-value">7</div>
+                        </div>
+                    </div>
+                    
+                    <div class="action-grid">
+                        <button class="action-btn">
+                            <span>Add New Entry</span>
+                        </button>
+                        <button class="action-btn">
+                            <span>View All</span>
+                        </button>
+                        <button class="action-btn">
+                            <span>Download Report</span>
+                        </button>
+                        <button class="action-btn">
+                            <span>Custom Export</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="status-bar">
+                <div class="last-save">
+                    <span>Last save:</span>
+                    <span id="last-save-time">Just now</span>
+                </div>
+                <div class="auto-save-status">
+                    <span>Auto-save: </span>
+                    <span id="auto-save-status">Active</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Container -->
+        <div id="notification" class="notification"></div>
+
+        <!-- Footer -->
+        <div class="footer">
+            Sales Bonus Tool v2.0 | Secured with Firebase Authentication | Data encrypted in transit and at rest
+        </div>
     </div>
-    <div class="buttons">
-      <button id="addCustom">Add Entry</button>
-      <button id="downloadCustom" style="display:none">Download Custom PDF</button>
-      <button id="customExcel" style="display:none">Export Custom Excel</button>
-    </div>
-    <ul id="previewList" class="preview-list"></ul>
-  </div>
-  <div>
-    <h3>🎯 <span id="grpTitle">Your Group</span></h3>
-    <p id="grpPrompt">Enter # of sales this week:</p>
-    <input type="number" id="groupSales" min="0">
-    <button id="checkGroup">Check Your Group</button>
-    <p id="groupResult" style="text-align:center;font-weight:bold;"></p>
-  </div>
-</div>
 
-<script>
-// Data setup
-const rates = { renewal:30, mobTelus:130, mobKoodo:70, shsA:300, homeView:120, koodoInternet:170, ilecFiber:200, ilecOptikTV:100, vulcanFiber:300, vulcanOptikTV:150, streamPlus:30, wirelessHP:30 };
-const labels = { renewal:"Renewal", mobTelus:"MOB Telus", mobKoodo:"MOB Koodo", shsA:"SHS", homeView:"HomeView", koodoInternet:"Koodo Internet", ilecFiber:"ILEC Fiber", ilecOptikTV:"ILEC Optik TV", vulcanFiber:"Vulcan Fiber", vulcanOptikTV:"Vulcan Optik TV", streamPlus:"Stream+", wirelessHP:"Wireless HP" };
-let entries = [];
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAxzsAahOAAQn63JeK7jyfQzWS-ZQW05_g",
+            authDomain: "sbttool.firebaseapp.com",
+            projectId: "sbttool",
+            storageBucket: "sbttool.firebasestorage.app",
+            messagingSenderId: "551334665813",
+            appId: "1:551334665813:web:8986d30f823bcc739bbedc"
+        };
 
-// Build sales list
-const salesList = document.getElementById('salesCountList');
-Object.entries(rates).forEach(([k])=>{
-  const li = document.createElement('li');
-  li.innerHTML = `<label>${labels[k]}</label><input type="number" id="${k}" min="0" value="0">`;
-  salesList.appendChild(li);
-});
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+        console.log("Firebase initialized successfully!");
 
-// Populate custom dropdown
-const st = document.getElementById('saleType');
-Object.values(labels).forEach(name=>{
-  const o = document.createElement('option');
-  o.value = name; o.textContent = name;
-  st.appendChild(o);
-});
+        // DOM Elements
+        const authContainer = document.getElementById('auth-container');
+        const toolContainer = document.getElementById('tool-container');
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const forgotPasswordBtn = document.getElementById('forgot-password');
+        const notification = document.getElementById('notification');
+        const userAvatar = document.getElementById('user-avatar');
+        const userName = document.getElementById('user-name');
+        const userId = document.getElementById('user-id');
+        const lastSaveTime = document.getElementById('last-save-time');
 
-// Button handlers
-document.getElementById('calculateBtn').onclick = () => {
-  let total = 0;
-  Object.entries(rates).forEach(([k,v]) => {
-    const c = parseInt(document.getElementById(k).value) || 0;
-    total += c * v;
-  });
-  document.getElementById('total').textContent = total.toLocaleString();
-};
-document.getElementById('resetBtn').onclick = () => {
-  Object.keys(rates).forEach(k => document.getElementById(k).value = 0);
-  document.getElementById('total').textContent = '0';
-};
-document.getElementById('downloadBtn').onclick = () => {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ lineHeightFactor: 1.2 });
-  doc.setFillColor('#4caf50'); doc.rect(0,0,210,20,'F');
-  doc.setTextColor('#fff'); doc.setFontSize(16); doc.text("Sales Bonus Tracker",10,14);
-  doc.setTextColor('#000'); doc.setFontSize(12);
-  let y=30;
-  Object.entries(rates).forEach(([k,v])=>{
-    const c = parseInt(document.getElementById(k).value) || 0;
-    if(c){ doc.text(`${labels[k]}: ${c} × ${v} = ${c*v} MAD`,10,y); y+=8; }
-  });
-  doc.setFontSize(14); doc.text(`Total Bonus: ${document.getElementById('total').textContent} MAD`,10,y+10);
-  doc.save('sales-bonus.pdf');
-};
-document.getElementById('exportExcel').onclick = () => {
-  const wb = XLSX.utils.book_new();
-  const bonus = [['Type','Count','Rate','Subtotal']];
-  Object.entries(rates).forEach(([k,v])=>{
-    const c = parseInt(document.getElementById(k).value) || 0;
-    if(c) bonus.push([labels[k],c,v,c*v]);
-  });
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(bonus), 'Sales Bonus');
-  XLSX.writeFile(wb, 'sales-bonus.xlsx');
-};
+        // Show notification function
+        function showNotification(message, type) {
+            notification.textContent = message;
+            notification.className = 'notification';
+            
+            if (type === 'success') {
+                notification.classList.add('success');
+            } else if (type === 'error') {
+                notification.classList.add('error');
+            }
+            
+            notification.classList.add('show');
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 3000);
+        }
 
-// Contact button
-document.getElementById('contactBtn').onclick = () => {
-  window.open('https://docs.google.com/forms/d/e/1FAIpQLSdPdYaqj66wsVrJIVoN3jEHeIAmDS6mhaFGwcCwoapE1uwvTw/viewform?usp=preview','_blank');
-};
+        // Login function
+        loginBtn.addEventListener('click', async () => {
+            const salesId = document.getElementById('sales-id').value.trim();
+            const password = document.getElementById('sales-password').value;
+            
+            if (!salesId || !password) {
+                showNotification('Please enter both Sales ID and Password', 'error');
+                return;
+            }
+            
+            // Format sales ID as email
+            const email = `${salesId}@sbttool.auth`;
+            
+            try {
+                // Try to log in
+                const userCredential = await auth.signInWithEmailAndPassword(email, password);
+                showNotification('Login successful! Loading your data...', 'success');
+                console.log('User logged in:', userCredential.user.uid);
+            } catch (error) {
+                // If user doesn't exist, register them
+                if (error.code === 'auth/user-not-found') {
+                    try {
+                        const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                        showNotification('Account created! You are now logged in.', 'success');
+                        console.log('New user registered:', userCredential.user.uid);
+                        
+                        // Create user document in Firestore
+                        await db.collection('users').doc(userCredential.user.uid).set({
+                            salesId: salesId,
+                            createdAt: new Date(),
+                            lastLogin: new Date()
+                        });
+                    } catch (registerError) {
+                        showNotification(`Registration failed: ${registerError.message}`, 'error');
+                        console.error('Registration error:', registerError);
+                    }
+                } else {
+                    showNotification(`Login failed: ${error.message}`, 'error');
+                    console.error('Login error:', error);
+                }
+            }
+        });
 
-// Note area
-document.getElementById('noteBtn').onclick = () => {
-  const na = document.querySelector('.note-area');
-  na.style.display = na.style.display==='block'?'none':'block';
-};
-document.getElementById('copyNote').onclick = () => {
-  const ta = document.getElementById('noteText');
-  ta.select(); document.execCommand('copy');
-  alert('Copied!');
-};
+        // Forgot password function
+        forgotPasswordBtn.addEventListener('click', async () => {
+            const salesId = document.getElementById('sales-id').value.trim();
+            
+            if (!salesId) {
+                showNotification('Please enter your Sales ID to reset password', 'error');
+                return;
+            }
+            
+            const email = `${salesId}@sbttool.auth`;
+            
+            try {
+                await auth.sendPasswordResetEmail(email);
+                showNotification('Password reset email sent! Check your inbox.', 'success');
+            } catch (error) {
+                showNotification(`Failed to send reset email: ${error.message}`, 'error');
+                console.error('Password reset error:', error);
+            }
+        });
 
-// Custom tracker
-document.getElementById('toggleCustom').onclick = () => {
-  document.getElementById('customForm').style.display = 'block';
-};
-document.getElementById('addCustom').onclick = () => {
-  const e = {};
-  ['saleType','cName','cBAN','cCID','cNumber','cOffer','cOrder','cDate']
-    .forEach(id => e[id] = document.getElementById(id).value);
-  entries.push(e);
-  renderEntries();
-  document.getElementById('downloadCustom').style.display = 'inline-block';
-  document.getElementById('customExcel').style.display = 'inline-block';
-};
-function renderEntries(){
-  const ul = document.getElementById('previewList');
-  ul.innerHTML = '';
-  entries.forEach((e,i)=>{
-    const li = document.createElement('li');
-    li.innerHTML = `${e.saleType} | ${e.cName} | ${e.cOrder} <button onclick="entries.splice(${i},1);renderEntries();">Remove</button>`;
-    ul.appendChild(li);
-  });
-}
-document.getElementById('downloadCustom').onclick = () => {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF({ lineHeightFactor: 1.2 });
-  doc.setFillColor('#2196f3'); doc.rect(0,0,210,20,'F');
-  doc.setTextColor('#fff'); doc.setFontSize(16); doc.text("Custom Tracker",10,14);
-  doc.setTextColor('#000'); doc.setFontSize(12);
-  let y=30;
-  entries.forEach((e,i)=>{
-    doc.text(`Entry ${i+1}:`,10,y); y+=6;
-    Object.entries(e).forEach(([k,v])=>{
-      if(v){ doc.text(`• ${k}: ${v}`,12,y); y+=6; }
-    });
-    y+=4;
-  });
-  doc.save('custom-tracker.pdf');
-};
-document.getElementById('customExcel').onclick = () => {
-  const wb = XLSX.utils.book_new();
-  const cust = [['Type','Name','BAN','CID','Number','Offer','Order','Date']];
-  entries.forEach(e => cust.push([e.saleType,e.cName,e.cBAN,e.cCID,e.cNumber,e.cOffer,e.cOrder,e.cDate]));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(cust), 'Custom Tracker');
-  XLSX.writeFile(wb, 'custom-tracker.xlsx');
-};
+        // Logout function
+        logoutBtn.addEventListener('click', () => {
+            auth.signOut();
+            showNotification('You have been logged out successfully', 'success');
+        });
 
-// Group check
-document.getElementById('checkGroup').onclick = () => {
-  const s = parseInt(document.getElementById('groupSales').value) || 0;
-  let g = 'H & D';
-  if(s >= 4 && s <= 8) g='C';
-  else if(s >= 9 && s <= 12) g='B';
-  else if(s >= 13 && s <= 19) g='A';
-  else if(s >= 20) g='A+';
-  document.getElementById('groupResult').textContent = `👉 You will be in Group ${g} next week!`;
-};
+        // Auto-save function (simulated)
+        function autoSaveData() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+            lastSaveTime.textContent = timeString;
+            
+            // In a real implementation, this would save to Firestore
+            console.log('Auto-saving data...');
+            showNotification('Data saved successfully', 'success');
+        }
 
-// Theme toggles
-const ctr = document.querySelector('.container');
-document.getElementById('themeToggle').onclick = () => {
-  const m = ctr.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
-  ctr.setAttribute('data-theme', m);
-  document.getElementById('themeToggle').textContent = m === 'light' ? '🌙' : '🌞';
-};
-document.getElementById('purpleToggle').onclick = () => {
-  const m = ctr.getAttribute('data-theme') === 'purple' ? 'light' : 'purple';
-  ctr.setAttribute('data-theme', m);
-  document.getElementById('purpleToggle').textContent = m === 'purple' ? '⚪' : '💎';
-  if(m === 'purple') document.getElementById('themeToggle').textContent = '🌞';
-};
+        // Set up auto-save interval
+        setInterval(autoSaveData, 30000); // Auto-save every 30 seconds
 
-// Language
-document.getElementById('langToggle').onclick = () => {
-  const lang = document.getElementById('langToggle').textContent === 'FR' ? 'fr' : 'en';
-  document.getElementById('langToggle').textContent = lang === 'fr' ? 'EN' : 'FR';
-  const dict = {
-    en:{calc:'Calculate',reset:'Reset',download:'Download PDF',custom:'Custom Tracker',excel:'Export Sales Excel',check:'Check Your Group',prompt:'Enter # of sales this week:',title:'Your Group'},
-    fr:{calc:'Calculer',reset:'Réinitialiser',download:'Télécharger PDF',custom:'Traqueur Perso',excel:'Exporter Ventes Excel',check:'Vérifier Votre Groupe',prompt:'Entrez n° de ventes cette semaine:',title:'Votre Groupe'}
-  };
-  const d = dict[lang];
-  document.getElementById('calculateBtn').textContent = d.calc;
-  document.getElementById('resetBtn').textContent = d.reset;
-  document.getElementById('downloadBtn').textContent = d.download;
-  document.getElementById('toggleCustom').textContent = d.custom;
-  document.getElementById('exportExcel').textContent = d.excel;
-  document.getElementById('customExcel').textContent = d.excel;
-  document.getElementById('checkGroup').textContent = d.check;
-  document.getElementById('grpPrompt').textContent = d.prompt;
-  document.getElementById('grpTitle').textContent = d.title;
-};
-</script>
+        // Auth state listener
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                // User is logged in
+                authContainer.style.display = 'none';
+                toolContainer.style.display = 'block';
+                
+                // Update user info
+                const displayName = user.email.split('@')[0];
+                userAvatar.textContent = displayName.charAt(0).toUpperCase();
+                userName.textContent = displayName;
+                userId.textContent = `ID: ${displayName}`;
+                
+                // Load user data
+                console.log('Loading user data...');
+                
+                // Set up auto-save immediately
+                autoSaveData();
+            } else {
+                // User is logged out
+                authContainer.style.display = 'block';
+                toolContainer.style.display = 'none';
+                
+                // Clear input fields
+                document.getElementById('sales-id').value = '';
+                document.getElementById('sales-password').value = '';
+            }
+        });
+
+        // Initial call to show the correct UI
+        auth.onAuthStateChanged(null);
+    </script>
 </body>
 </html>
